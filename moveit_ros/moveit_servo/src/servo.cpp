@@ -62,11 +62,13 @@ Servo::Servo(ros::NodeHandle& nh, const planning_scene_monitor::PlanningSceneMon
   ros::AsyncSpinner spinner(1);
   spinner.start();
 
-  // Confirm the planning scene monitor is ready to be used
-  if (!planning_scene_monitor_->getStateMonitor())
+  // Confirm the planning scene monitor is ready to be use
+  if (parameters_.joint_topic != "joint_states")
   {
+    planning_scene_monitor_->stopStateMonitor();
     planning_scene_monitor_->startStateMonitor(parameters_.joint_topic);
   }
+
   planning_scene_monitor->getStateMonitor()->enableCopyDynamics(true);
 
   if (!planning_scene_monitor_->getStateMonitor()->waitForCompleteState(parameters_.move_group_name,

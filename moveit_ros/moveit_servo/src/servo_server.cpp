@@ -62,12 +62,16 @@ int main(int argc, char** argv)
     exit(EXIT_FAILURE);
   }
 
+  // Update the planning scene monitor with the current state
+  bool success = planning_scene_monitor->requestPlanningSceneState("/get_planning_scene");
+  ROS_INFO_STREAM("Request planning scene " << (success ? "succeeded." : "failed."));
+
   // Start the planning scene monitor
-  planning_scene_monitor->startSceneMonitor();
+  planning_scene_monitor->startSceneMonitor("move_group/monitored_planning_scene");
   planning_scene_monitor->startWorldGeometryMonitor(
       planning_scene_monitor::PlanningSceneMonitor::DEFAULT_COLLISION_OBJECT_TOPIC,
       planning_scene_monitor::PlanningSceneMonitor::DEFAULT_PLANNING_SCENE_WORLD_TOPIC,
-      false /* skip octomap monitor */);
+      true /* load octomap monitor */);
   planning_scene_monitor->startStateMonitor();
 
   // Create the servo server
