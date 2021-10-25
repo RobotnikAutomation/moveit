@@ -60,8 +60,8 @@ namespace fs = boost::filesystem;
 MoveItConfigData::MoveItConfigData() : config_pkg_generated_timestamp_(0)
 {
   // Create an instance of SRDF writer and URDF model for all widgets to share
-  srdf_.reset(new srdf::SRDFWriter());
-  urdf_model_.reset(new urdf::Model());
+  srdf_ = std::make_shared<srdf::SRDFWriter>();
+  urdf_model_ = std::make_shared<urdf::Model>();
 
   // Not in debug mode
   debug_ = false;
@@ -95,7 +95,7 @@ moveit::core::RobotModelConstPtr MoveItConfigData::getRobotModel()
   if (!robot_model_)
   {
     // Initialize with a URDF Model Interface and a SRDF Model
-    robot_model_.reset(new moveit::core::RobotModel(urdf_model_, srdf_->srdf_model_));
+    robot_model_ = std::make_shared<moveit::core::RobotModel>(urdf_model_, srdf_->srdf_model_);
   }
 
   return robot_model_;
@@ -112,7 +112,7 @@ void MoveItConfigData::updateRobotModel()
   srdf_->updateSRDFModel(*urdf_model_);
 
   // Create new kin model
-  robot_model_.reset(new moveit::core::RobotModel(urdf_model_, srdf_->srdf_model_));
+  robot_model_ = std::make_shared<moveit::core::RobotModel>(urdf_model_, srdf_->srdf_model_);
 
   // Reset the planning scene
   planning_scene_.reset();
@@ -129,7 +129,7 @@ planning_scene::PlanningScenePtr MoveItConfigData::getPlanningScene()
     getRobotModel();
 
     // Allocate an empty planning scene
-    planning_scene_.reset(new planning_scene::PlanningScene(robot_model_));
+    planning_scene_ = std::make_shared<planning_scene::PlanningScene>(robot_model_);
   }
   return planning_scene_;
 }
@@ -300,7 +300,7 @@ bool MoveItConfigData::outputCHOMPPlanningYAML(const std::string& file_path)
   emitter << YAML::Key << "use_pseudo_inverse" << YAML::Value << "false";
   emitter << YAML::Key << "pseudo_inverse_ridge_factor" << YAML::Value << "1e-4";
   emitter << YAML::Key << "joint_update_limit" << YAML::Value << "0.1";
-  emitter << YAML::Key << "collision_clearence" << YAML::Value << "0.2";
+  emitter << YAML::Key << "collision_clearance" << YAML::Value << "0.2";
   emitter << YAML::Key << "collision_threshold" << YAML::Value << "0.07";
   emitter << YAML::Key << "use_stochastic_descent" << YAML::Value << "true";
   emitter << YAML::Key << "enable_failure_recovery" << YAML::Value << "true";
