@@ -61,11 +61,11 @@ public:
     : owner_(owner), dynamic_reconfigure_server_(ros::NodeHandle("~/trajectory_execution"))
   {
     dynamic_reconfigure_server_.setCallback(
-        boost::bind(&DynamicReconfigureImpl::dynamicReconfigureCallback, this, _1, _2));
+        [this](const auto& config, uint32_t level) { dynamicReconfigureCallback(config, level); });
   }
 
 private:
-  void dynamicReconfigureCallback(TrajectoryExecutionDynamicReconfigureConfig& config, uint32_t /*level*/)
+  void dynamicReconfigureCallback(const TrajectoryExecutionDynamicReconfigureConfig& config, uint32_t /*level*/)
   {
     owner_->enableExecutionDurationMonitoring(config.execution_duration_monitoring);
     owner_->setAllowedExecutionDurationScaling(config.allowed_execution_duration_scaling);
@@ -359,8 +359,7 @@ bool TrajectoryExecutionManager::pushAndExecute(const moveit_msgs::RobotTrajecto
       boost::mutex::scoped_lock slock(continuous_execution_mutex_);
       continuous_execution_queue_.push_back(context);
       if (!continuous_execution_thread_)
-        continuous_execution_thread_ =
-            std::make_unique<boost::thread>(boost::bind(&TrajectoryExecutionManager::continuousExecutionThread, this));
+        continuous_execution_thread_ = std::make_unique<boost::thread>([this] { continuousExecutionThread(); });
     }
     last_execution_status_ = moveit_controller_manager::ExecutionStatus::SUCCEEDED;
     continuous_execution_condition_.notify_all();
