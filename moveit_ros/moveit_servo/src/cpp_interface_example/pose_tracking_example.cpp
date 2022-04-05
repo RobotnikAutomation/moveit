@@ -38,6 +38,8 @@
 
 #include <std_msgs/Int8.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <moveit_servo/servo.h>
 #include <moveit_servo/pose_tracking.h>
@@ -131,6 +133,28 @@ int main(int argc, char** argv)
   // waypoints
   tracker.resetTargetPose();
 
+  tf2_ros::Buffer tfBuffer;
+  tf2_ros::TransformListener* tf_listener_;
+  geometry_msgs::TransformStamped transform_stamped;
+
+
+  tf_listener_ = new  tf2_ros::TransformListener(tfBuffer);
+
+  try{
+    transform_stamped = tfBuffer.lookupTransform("tool0","target",ros::Time(0),ros::Duration(1.0));
+  }
+  catch(tf2::TransformException ex){
+      ROS_ERROR("Lookup Transform error: %s", ex.what());
+      return false;
+  }
+
+  target_pose.header.frame_id = "tool0";
+  target_pose.pose.position.x = transform_stamped.transform.translation.x;
+  target_pose.pose.position.y = transform_stamped.transform.translation.y;
+  target_pose.pose.position.z = transform_stamped.transform.translation.z;
+  target_pose.pose.orientation = transform_stamped.transform.rotation;
+  std::cout << target_pose << std::endl;
+
   // Publish target pose
   target_pose.header.stamp = ros::Time::now();
   target_pose_pub.publish(target_pose);
@@ -140,13 +164,26 @@ int main(int argc, char** argv)
       [&tracker, &lin_tol, &rot_tol] { tracker.moveToPose(lin_tol, rot_tol, 0.1 /* target pose timeout */); });
 
   ros::Rate loop_rate(50);
-  for (size_t i = 0; i < 500; ++i)
+  while (ros::ok())
   {
-    // Modify the pose target a little bit each cycle
-    // This is a dynamic pose target
-    target_pose.pose.position.z += 0.0004;
+/*     try{
+      transform_stamped = tfBuffer.lookupTransform("tool0","moving_target",ros::Time(0),ros::Duration(1.0));
+    }
+    catch(tf2::TransformException ex){
+        ROS_ERROR("Lookup Transform error: %s", ex.what());
+        return false;
+    }
+
+    target_pose.header.frame_id = "tool0";
+    target_pose.pose.position.x = transform_stamped.transform.translation.x;
+    target_pose.pose.position.y = transform_stamped.transform.translation.y;
+    target_pose.pose.position.z = transform_stamped.transform.translation.z;
+    target_pose.pose.orientation = transform_stamped.transform.rotation;
+    std::cout << target_pose << std::endl;
+
+    // Publish target pose
     target_pose.header.stamp = ros::Time::now();
-    target_pose_pub.publish(target_pose);
+    target_pose_pub.publish(target_pose); */
 
     loop_rate.sleep();
   }
