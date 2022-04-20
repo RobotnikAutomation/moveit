@@ -52,6 +52,26 @@ public:
 
   void initialize(const ros::NodeHandle& /*nh*/) override
   {
+    // Correct way should be to grab jerk limits from the robot_model/joint_model
+    // however as limits are passed using a message this needs to 
+    // update moveit_msgs package to include jerk limits (done in ros2)
+    // so here we grab the limits manually and pass them to ruckig through
+    // the RuckigSmoothing object
+    ros::NodeHandle n("");
+    XmlRpc::XmlRpcValue joint_limits;
+    if (n.getParam("robot_description_planning/joint_limits", joint_limits))
+    {
+        // show info about found joint limits 
+        // iterate over each joint to check if jerk limit exists
+        // if exists
+        // pass to RuckigSmoothing
+        // if not exists
+        // show warning about jerk limits not found,
+    }
+    else
+    {
+        // show warning about joint limits not found
+    }
   }
 
   std::string getDescription() const override
