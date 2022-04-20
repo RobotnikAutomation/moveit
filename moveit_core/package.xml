@@ -53,6 +53,7 @@
   <depend>trajectory_msgs</depend>
   <depend>visualization_msgs</depend>
   <depend>xmlrpcpp</depend>
+  <depend>ruckig</depend>
   <depend>pluginlib</depend>
 
   <doc_depend>python3-sphinx-rtd-theme</doc_depend>

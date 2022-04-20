@@ -1,4 +1,5 @@
 set(MOVEIT_LIB_NAME moveit_default_planning_request_adapter_plugins)
+set(CMAKE_CXX_STANDARD 17)
 
 set(SOURCE_FILES
   src/empty.cpp
@@ -7,10 +8,11 @@ set(SOURCE_FILES
   src/fix_start_state_path_constraints.cpp
   src/fix_workspace_bounds.cpp
   src/add_time_parameterization.cpp
+  src/add_ruckig_traj_smoothing.cpp
   src/add_iterative_spline_parameterization.cpp
   src/add_time_optimal_parameterization.cpp
   src/resolve_constraint_frames.cpp
-  )
+)
 
 add_library(${MOVEIT_LIB_NAME} ${SOURCE_FILES})
 set_target_properties(${MOVEIT_LIB_NAME} PROPERTIES VERSION "${${PROJECT_NAME}_VERSION}")
