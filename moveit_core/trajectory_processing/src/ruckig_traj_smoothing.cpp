@@ -60,7 +60,6 @@ bool RuckigSmoothing::applySmoothing(robot_trajectory::RobotTrajectory& trajecto
                                     const double max_velocity_scaling_factor,
                                     const double max_acceleration_scaling_factor)
 {
-  ROS_INFO_STREAM_THROTTLE(1, "applySmoothing");
   moveit::core::JointModelGroup const* const group = trajectory.getGroup();
   if (!group)
   {
@@ -214,7 +213,6 @@ void RuckigSmoothing::initializeRuckigState(ruckig::InputParameter<0>& ruckig_in
                                             const moveit::core::RobotState& first_waypoint,
                                             const moveit::core::JointModelGroup* joint_group)
 {
-  ROS_INFO_STREAM_THROTTLE(1, "RuckigSmoothing::initializeRuckigState");
   const size_t num_dof = joint_group->getVariableCount();
   const std::vector<int>& idx = joint_group->getVariableIndexList();
 
@@ -242,7 +240,6 @@ void RuckigSmoothing::getNextRuckigInput(const ruckig::OutputParameter<0>& rucki
                                          const moveit::core::JointModelGroup* joint_group,
                                          ruckig::InputParameter<0>& ruckig_input)
 {
-  ROS_INFO_STREAM_THROTTLE(1, "RuckigSmoothing::getNextRuckigInput");
   // TODO(andyz): https://github.com/ros-planning/moveit2/issues/766
   // ruckig_output.pass_to_input(ruckig_input);
 
