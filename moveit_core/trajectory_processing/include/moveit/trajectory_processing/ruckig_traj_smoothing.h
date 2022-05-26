@@ -40,14 +40,14 @@
 #include <moveit/robot_trajectory/robot_trajectory.h>
 #include <ruckig/ruckig.hpp>
 
+namespace trajectory_processing
+{
 struct JerkLimits
 {
   bool has_jerk_limits;
   double max_jerk;
 };
 
-namespace trajectory_processing
-{
 class RuckigSmoothing
 {
 
