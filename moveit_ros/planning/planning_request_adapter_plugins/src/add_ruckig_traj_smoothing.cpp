@@ -38,6 +38,10 @@
 #include <class_loader/class_loader.hpp>
 #include <ros/console.h>
 
+// To use struct JerkLimits 
+// #include <moveit/trajectory_processing/ruckig_traj_smoothing.h>
+
+
 namespace default_planner_request_adapters
 {
 using namespace trajectory_processing;
@@ -61,16 +65,39 @@ public:
     XmlRpc::XmlRpcValue joint_limits;
     if (n.getParam("robot_description_planning/joint_limits", joint_limits))
     {
-        // show info about found joint limits 
-        // iterate over each joint to check if jerk limit exists
-        // if exists
-        // pass to RuckigSmoothing
-        // if not exists
-        // show warning about jerk limits not found,
+      int i = 0;
+      jerk_limits.resize(joint_limits.size());
+      // iterate over each joint to check if jerk limit exists and get its values
+      for (auto& jl: joint_limits){
+
+        // The jl is a pair type, the jl.first and jl.second can be used
+        XmlRpc::XmlRpcValue ja_limits = jl.second;
+        if (ja_limits.hasMember("max_jerk")) {
+          double value;
+          if (ja_limits["max_jerk"].getType() == XmlRpc::XmlRpcValue::TypeDouble)
+            value = ja_limits["max_jerk"];
+          if (ja_limits["max_jerk"].getType() == XmlRpc::XmlRpcValue::TypeInt)
+          {
+            value = (int) ja_limits["max_jerk"];
+          }
+          jerk_limits[i].max_jerk = value;
+          jerk_limits[i].has_jerk_limits = true;
+        }
+
+        if (ja_limits.hasMember("has_jerk_limits")){
+          jerk_limits[i].has_jerk_limits = ja_limits["has_jerk_limits"];
+        }
+
+        // ROS_INFO_STREAM("In " << jl.first + " the has_jerk_limits is: " << jerk_limits[i].has_jerk_limits);
+        // ROS_INFO_STREAM("In " << jl.first + " the max_jerk is: " << jerk_limits[i].max_jerk);
+        i=i+1;
+      }
+      // show info about found joint limits
+      ROS_INFO_STREAM("Jerk joint limits defined. Read from joint_limits.yaml!");
     }
-    else
-    {
-        // show warning about joint limits not found
+    else{
+      // show warning about joint limits not found
+      ROS_WARN("No joint limits defined. Fill and load joint_limits.yaml!");
     }
   }
 
@@ -86,7 +113,7 @@ public:
     bool result = planner(planning_scene, req, res);
     if (result && res.trajectory_)
     {
-      if (!smoother_.applySmoothing(*res.trajectory_, req.max_velocity_scaling_factor,
+      if (!smoother_.applySmoothing(*res.trajectory_, jerk_limits, req.max_velocity_scaling_factor,
                                     req.max_acceleration_scaling_factor))
       {
         result = false;
@@ -97,6 +124,7 @@ public:
   }
 
 private:
+  std::vector<JerkLimits> jerk_limits;
   RuckigSmoothing smoother_;
 };
 

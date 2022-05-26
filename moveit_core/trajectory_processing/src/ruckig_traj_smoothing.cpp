@@ -51,11 +51,15 @@ constexpr double MAX_DURATION_EXTENSION_FACTOR = 10.0;
 constexpr double DURATION_EXTENSION_FRACTION = 1.1;
 }  // namespace
 
+// bool RuckigSmoothing::applySmoothing(robot_trajectory::RobotTrajectory& trajectory,
+//                                     const double max_velocity_scaling_factor,
+//                                     const double max_acceleration_scaling_factor)
+
 bool RuckigSmoothing::applySmoothing(robot_trajectory::RobotTrajectory& trajectory,
-                                     const double max_velocity_scaling_factor,
-                                     const double max_acceleration_scaling_factor)
+                                    const std::vector<JerkLimits>& jerk_limits,
+                                    const double max_velocity_scaling_factor,
+                                    const double max_acceleration_scaling_factor)
 {
-  ROS_INFO_STREAM_THROTTLE(1, "applySmoothing");
   moveit::core::JointModelGroup const* const group = trajectory.getGroup();
   if (!group)
   {
@@ -124,13 +128,13 @@ bool RuckigSmoothing::applySmoothing(robot_trajectory::RobotTrajectory& trajecto
                                   << " rad/s^2. You can define acceleration limits in the URDF or joint_limits.yaml.");
       ruckig_input.max_acceleration.at(i) = max_acceleration_scaling_factor * DEFAULT_MAX_ACCELERATION;
     }
-    ruckig_input.max_jerk.at(i) = bounds.jerk_bounded_ ? bounds.max_jerk_ : DEFAULT_MAX_JERK;
-    if (bounds.jerk_bounded_)
-    {
-      ruckig_input.max_jerk.at(i) = bounds.max_jerk_;
+    
+    // If has_jerk_limits is true, then save the value of the max_jerk
+    if(jerk_limits[i].has_jerk_limits){
+      // ROS_INFO_STREAM("The jerk_limits.max_jerk is: " << jerk_limits[i].max_jerk);
+      ruckig_input.max_jerk.at(i) = jerk_limits[i].max_jerk;
     }
-    else
-    {
+    else{
       ROS_WARN_STREAM_ONCE_NAMED("trajectory_processing.iterative_spline_parameterization",
                                  "Joint jerk limits are not defined. Using the default "
                                           << DEFAULT_MAX_JERK
@@ -209,7 +213,6 @@ void RuckigSmoothing::initializeRuckigState(ruckig::InputParameter<0>& ruckig_in
                                             const moveit::core::RobotState& first_waypoint,
                                             const moveit::core::JointModelGroup* joint_group)
 {
-  ROS_INFO_STREAM_THROTTLE(1, "RuckigSmoothing::initializeRuckigState");
   const size_t num_dof = joint_group->getVariableCount();
   const std::vector<int>& idx = joint_group->getVariableIndexList();
 
@@ -237,7 +240,6 @@ void RuckigSmoothing::getNextRuckigInput(const ruckig::OutputParameter<0>& rucki
                                          const moveit::core::JointModelGroup* joint_group,
                                          ruckig::InputParameter<0>& ruckig_input)
 {
-  ROS_INFO_STREAM_THROTTLE(1, "RuckigSmoothing::getNextRuckigInput");
   // TODO(andyz): https://github.com/ros-planning/moveit2/issues/766
   // ruckig_output.pass_to_input(ruckig_input);
 

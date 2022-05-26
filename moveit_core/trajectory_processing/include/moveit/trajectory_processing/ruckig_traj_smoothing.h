@@ -42,35 +42,47 @@
 
 namespace trajectory_processing
 {
+struct JerkLimits
+{
+  bool has_jerk_limits;
+  double max_jerk;
+};
+
 class RuckigSmoothing
 {
-public:
-  static bool applySmoothing(robot_trajectory::RobotTrajectory& trajectory,
-                             const double max_velocity_scaling_factor = 1.0,
-                             const double max_acceleration_scaling_factor = 1.0);
 
-private:
-  /**
-   * \brief Feed previous output back as input for next iteration. Get next target state from the next waypoint.
-   * \param ruckig_output   The previous output from Ruckig
-   * \param next_waypoint   The nominal, desired state at the next waypoint
-   * \param joint_group     The MoveIt JointModelGroup of interest
-   * \param ruckig_input    Output. The Rucking parameters for the next iteration
-   */
-  static void getNextRuckigInput(const ruckig::OutputParameter<0>& ruckig_output,
-                                 const moveit::core::RobotStatePtr& next_waypoint,
-                                 const moveit::core::JointModelGroup* joint_group,
-                                 ruckig::InputParameter<0>& ruckig_input);
+  public:
+    // static bool applySmoothing(robot_trajectory::RobotTrajectory& trajectory,
+    //                           const double max_velocity_scaling_factor = 1.0,
+    //                           const double max_acceleration_scaling_factor = 1.0);
+    
+    static bool applySmoothing(robot_trajectory::RobotTrajectory& trajectory,
+                              const std::vector<JerkLimits>& jerk_limits,
+                              const double max_velocity_scaling_factor = 1.0,
+                              const double max_acceleration_scaling_factor = 1.0);
 
-  /**
-   * \brief Initialize Ruckig position/vel/accel. This initializes ruckig_input and ruckig_output to the same values
-   * \param rucking_input   Input parameters to Ruckig. Initialized here.
-   * \param ruckig_output   Output from the Ruckig algorithm. Initialized here.
-   * \param first_waypoint  The Ruckig input/output parameters are initialized to the values at this waypoint
-   * \param joint_group     The MoveIt JointModelGroup of interest
-   */
-  static void initializeRuckigState(ruckig::InputParameter<0>& ruckig_input, ruckig::OutputParameter<0>& ruckig_output,
-                                    const moveit::core::RobotState& first_waypoint,
-                                    const moveit::core::JointModelGroup* joint_group);
+  private:
+    /**
+     * \brief Feed previous output back as input for next iteration. Get next target state from the next waypoint.
+     * \param ruckig_output   The previous output from Ruckig
+     * \param next_waypoint   The nominal, desired state at the next waypoint
+     * \param joint_group     The MoveIt JointModelGroup of interest
+     * \param ruckig_input    Output. The Rucking parameters for the next iteration
+     */
+    static void getNextRuckigInput(const ruckig::OutputParameter<0>& ruckig_output,
+                                  const moveit::core::RobotStatePtr& next_waypoint,
+                                  const moveit::core::JointModelGroup* joint_group,
+                                  ruckig::InputParameter<0>& ruckig_input);
+
+    /**
+     * \brief Initialize Ruckig position/vel/accel. This initializes ruckig_input and ruckig_output to the same values
+     * \param rucking_input   Input parameters to Ruckig. Initialized here.
+     * \param ruckig_output   Output from the Ruckig algorithm. Initialized here.
+     * \param first_waypoint  The Ruckig input/output parameters are initialized to the values at this waypoint
+     * \param joint_group     The MoveIt JointModelGroup of interest
+     */
+    static void initializeRuckigState(ruckig::InputParameter<0>& ruckig_input, ruckig::OutputParameter<0>& ruckig_output,
+                                      const moveit::core::RobotState& first_waypoint,
+                                      const moveit::core::JointModelGroup* joint_group);
 };
 }  // namespace trajectory_processing
