@@ -63,6 +63,8 @@ TEST_F(RuckigTests, basic_trajectory)
 {
   moveit::core::RobotState robot_state(robot_model_);
   robot_state.setToDefaultValues();
+  robot_state.zeroVelocities();
+  robot_state.zeroAccelerations();
   // First waypoint is default joint positions
   trajectory_->addSuffixWayPoint(robot_state, DEFAULT_TIMESTEP);
 
@@ -71,34 +73,69 @@ TEST_F(RuckigTests, basic_trajectory)
   robot_state.copyJointGroupPositions(JOINT_GROUP, joint_positions);
   joint_positions.at(0) += 0.05;
   robot_state.setJointGroupPositions(JOINT_GROUP, joint_positions);
-  robot_state.update();
   trajectory_->addSuffixWayPoint(robot_state, DEFAULT_TIMESTEP);
 
   EXPECT_TRUE(
       smoother_.applySmoothing(*trajectory_, 1.0 /* max vel scaling factor */, 1.0 /* max accel scaling factor */));
 }
 
-TEST_F(RuckigTests, trajectory_duration)
+TEST_F(RuckigTests, basic_trajectory_with_custom_limits)
 {
-  // Compare against the OJET online trajectory generator: https://www.trajectorygenerator.com/ojet-online/
-  const double ideal_duration = 0.21025;
+  // Check the version of computeTimeStamps that takes custom velocity/acceleration limits
 
   moveit::core::RobotState robot_state(robot_model_);
   robot_state.setToDefaultValues();
+  robot_state.zeroVelocities();
+  robot_state.zeroAccelerations();
+  // First waypoint is default joint positions
+  trajectory_->addSuffixWayPoint(robot_state, DEFAULT_TIMESTEP);
+
+  // Second waypoint has slightly-different joint positions
+  std::vector<double> joint_positions;
+  robot_state.copyJointGroupPositions(JOINT_GROUP, joint_positions);
+  joint_positions.at(0) += 0.05;
+  robot_state.setJointGroupPositions(JOINT_GROUP, joint_positions);
+  trajectory_->addSuffixWayPoint(robot_state, DEFAULT_TIMESTEP);
+
+  // Custom velocity & acceleration limits for some joints
+  std::unordered_map<std::string, double> vel_limits{ { "panda_joint1", 1.3 } };
+  std::unordered_map<std::string, double> accel_limits{ { "panda_joint2", 2.3 }, { "panda_joint3", 3.3 } };
+  std::unordered_map<std::string, double> jerk_limits{ { "panda_joint5", 100.0 } };
+
+  EXPECT_TRUE(smoother_.applySmoothing(*trajectory_, vel_limits, accel_limits, jerk_limits));
+}
+
+TEST_F(RuckigTests, trajectory_duration)
+{
+  // Compare against the OJET online trajectory generator: https://www.trajectorygenerator.com/ojet-online/
+  const double ideal_duration = 0.317;
+
+  moveit::core::RobotState robot_state(robot_model_);
+  robot_state.setToDefaultValues();
+  robot_state.zeroVelocities();
+  robot_state.zeroAccelerations();
   // Special attention to Joint 0. It is the only joint to move in this test.
   // Zero velocities and accelerations at the endpoints
   robot_state.setVariablePosition("panda_joint1", 0.0);
-  robot_state.update();
-  trajectory_->addSuffixWayPoint(robot_state, 0.0);
+  trajectory_->addPrefixWayPoint(robot_state, 0.0);
 
+  robot_state.setToDefaultValues();
   robot_state.setVariablePosition("panda_joint1", 0.1);
-  robot_state.update();
   trajectory_->addSuffixWayPoint(robot_state, DEFAULT_TIMESTEP);
 
   EXPECT_TRUE(
       smoother_.applySmoothing(*trajectory_, 1.0 /* max vel scaling factor */, 1.0 /* max accel scaling factor */));
+
+  // No waypoint durations of zero except the first
+  for (size_t waypoint_idx = 1; waypoint_idx < trajectory_->getWayPointCount() - 1; ++waypoint_idx)
+  {
+    EXPECT_NE(trajectory_->getWayPointDurationFromPrevious(waypoint_idx), 0);
+  }
+
+  // The trajectory duration should be within 10% of the analytical solution since the implementation here extends
+  // the duration by 10% increments
   EXPECT_GT(trajectory_->getWayPointDurationFromStart(trajectory_->getWayPointCount() - 1), 0.9999 * ideal_duration);
-  EXPECT_LT(trajectory_->getWayPointDurationFromStart(trajectory_->getWayPointCount() - 1), 1.3 * ideal_duration);
+  EXPECT_LT(trajectory_->getWayPointDurationFromStart(trajectory_->getWayPointCount() - 1), 1.11 * ideal_duration);
 }
 
 TEST_F(RuckigTests, single_waypoint)
@@ -108,10 +145,10 @@ TEST_F(RuckigTests, single_waypoint)
 
   moveit::core::RobotState robot_state(robot_model_);
   robot_state.setToDefaultValues();
+  robot_state.zeroVelocities();
+  robot_state.zeroAccelerations();
   // First waypoint is default joint positions
   trajectory_->addSuffixWayPoint(robot_state, DEFAULT_TIMESTEP);
-
-  robot_state.update();
 
   // Trajectory should not change
   auto first_waypoint_input = robot_state;

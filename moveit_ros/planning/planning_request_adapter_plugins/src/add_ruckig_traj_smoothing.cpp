@@ -36,15 +36,12 @@
 #include <moveit/planning_request_adapter/planning_request_adapter.h>
 #include <moveit/trajectory_processing/ruckig_traj_smoothing.h>
 #include <class_loader/class_loader.hpp>
-#include <ros/console.h>
-
-// To use struct JerkLimits 
-// #include <moveit/trajectory_processing/ruckig_traj_smoothing.h>
-
 
 namespace default_planner_request_adapters
 {
 using namespace trajectory_processing;
+
+const std::string LOGGER = "moveit_ros.add_traj_smoothing";
 
 /** @brief This adapter uses the time-optimal trajectory generation method */
 class AddRuckigTrajectorySmoothing : public planning_request_adapter::PlanningRequestAdapter
@@ -54,7 +51,7 @@ public:
   {
   }
 
-  void initialize(const ros::NodeHandle& /*nh*/) override
+  void initialize(const ros::NodeHandle& /*node_handle*/) override
   {
     // Correct way should be to grab jerk limits from the robot_model/joint_model
     // however as limits are passed using a message this needs to 
@@ -116,6 +113,7 @@ public:
       if (!smoother_.applySmoothing(*res.trajectory_, jerk_limits, req.max_velocity_scaling_factor,
                                     req.max_acceleration_scaling_factor))
       {
+        ROS_WARN_NAMED(LOGGER, " Trajectory smoothing for the solution path failed.");
         result = false;
       }
     }
@@ -131,4 +129,4 @@ private:
 }  // namespace default_planner_request_adapters
 
 CLASS_LOADER_REGISTER_CLASS(default_planner_request_adapters::AddRuckigTrajectorySmoothing,
-                            planning_request_adapter::PlanningRequestAdapter);
+                            planning_request_adapter::PlanningRequestAdapter)

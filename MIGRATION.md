@@ -3,6 +3,7 @@
 API changes in MoveIt releases
 
 ## ROS Noetic
+- Building MoveIt partially requires C++17 and it's now the build default for us. You are recommended to build with C++17 in downstream projects, though older standards might suffice for various headers.
 - `CollisionObject` messages are now defined with a `Pose`, and shapes and subframes are defined relative to the object's pose. This makes it easier to place objects with subframes and multiple shapes in the scene. This causes several changes:
     - `getFrameTransform()` now returns this pose instead of the first shape's pose.
     - The Rviz plugin's manipulation tab now uses the object's pose instead of the shape pose to evaluate if object's are in the region of interest.
@@ -32,6 +33,9 @@ API changes in MoveIt releases
 - Moved the class `MoveItErrorCode` from both `moveit_ros_planning` and `moveit_ros_planning_interface` to `moveit_core`. The class now is in namespace `moveit::core`, access via `moveit::planning_interface` or `moveit_cpp::PlanningComponent` is deprecated.
 - End-effector markers in rviz are shown only if the eef's parent group is active _and_ the parent link is part of that group. Before, these conditions were _OR_-connected.
   You might need to define additional end-effectors.
+- Removed `ConstraintSampler::project()` as there was no real difference to `sample()`.
+- Removed `TrajectoryExecutionManager::pushAndExecute()` and the code associated to it. The code was unused and broken.
+- Renamed `MoveGroupInterface::getJointNames()` to `getVariableNames()`. If you used the method before, read up on `getJoints()`, `getVariableNames()` and `getActiveJoints()` to decide whether you used the correct method.
 
 ## ROS Melodic
 

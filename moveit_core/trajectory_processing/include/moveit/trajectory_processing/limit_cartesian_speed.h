@@ -1,7 +1,8 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2011, Willow Garage, Inc.
+ *  Copyright (c) 2020, Benjamin Scholz
+ *  Copyright (c) 2021, Thies Oelerich
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +15,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of Willow Garage nor the names of its
+ *   * Neither the name of the authors nor the names of other
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -32,40 +33,21 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-/* Author: Ioan Sucan */
+/* Authors: Benjamin Scholz, Thies Oelerich */
 
 #pragma once
 
-#include <ompl/base/StateSampler.h>
-#include <ompl/base/ValidStateSampler.h>
-#include <moveit/constraint_samplers/constraint_sampler.h>
 #include <moveit/macros/class_forward.h>
-
-namespace ompl_interface
+#include <string>
+namespace trajectory_processing
 {
-class ModelBasedPlanningContext;
+MOVEIT_CLASS_FORWARD(RobotTrajectory);
+}  // namespace trajectory_processing
 
-MOVEIT_CLASS_FORWARD(ValidStateSampler);  // Defines ValidStateSamplerPtr, ConstPtr, WeakPtr... etc
-
-/** @class ValidConstrainedSampler
- *  This class defines a sampler that tries to find a valid sample that satisfies the specified constraints */
-class ValidConstrainedSampler : public ompl::base::ValidStateSampler
+namespace trajectory_processing
 {
-public:
-  ValidConstrainedSampler(const ModelBasedPlanningContext* pc, kinematic_constraints::KinematicConstraintSetPtr ks,
-                          constraint_samplers::ConstraintSamplerPtr cs = constraint_samplers::ConstraintSamplerPtr());
-
-  bool sample(ompl::base::State* state) override;
-  virtual bool project(ompl::base::State* state);
-  bool sampleNear(ompl::base::State* state, const ompl::base::State* near, const double distance) override;
-
-private:
-  const ModelBasedPlanningContext* planning_context_;
-  kinematic_constraints::KinematicConstraintSetPtr kinematic_constraint_set_;
-  constraint_samplers::ConstraintSamplerPtr constraint_sampler_;
-  ompl::base::StateSamplerPtr default_sampler_;
-  moveit::core::RobotState work_state_;
-  double inv_dim_;
-  ompl::RNG rng_;
-};
-}  // namespace ompl_interface
+bool limitMaxCartesianLinkSpeed(robot_trajectory::RobotTrajectory& trajectory, const double speed,
+                                const moveit::core::LinkModel* link_model);
+bool limitMaxCartesianLinkSpeed(robot_trajectory::RobotTrajectory& trajectory, const double speed,
+                                const std::string& link_name = "");
+}  // namespace trajectory_processing

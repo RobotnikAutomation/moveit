@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>moveit_core</name>
-  <version>1.1.9</version>
+  <version>1.1.11</version>
   <description>Core libraries used by MoveIt</description>
   <author email="isucan@google.com">Ioan Sucan</author>
   <author email="robot.moveit@gmail.com">Sachin Chitta</author>
@@ -53,7 +53,6 @@
   <depend>trajectory_msgs</depend>
   <depend>visualization_msgs</depend>
   <depend>xmlrpcpp</depend>
-  <depend>ruckig</depend>
   <depend>pluginlib</depend>
 
   <doc_depend>python3-sphinx-rtd-theme</doc_depend>

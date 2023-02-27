@@ -70,6 +70,16 @@ urdf::ModelInterfaceSharedPtr loadModelInterface(const std::string& robot_name);
  */
 srdf::ModelSharedPtr loadSRDFModel(const std::string& robot_name);
 
+/** \brief Load an IK solver plugin for the given joint model group
+ * \param[in] jmg joint model group to load the plugin for
+ * \param[in] base_link base link of chain
+ * \param[in] tip_link tip link of chain
+ * \param[in] plugin name of the plugin ("KDL", or full name)
+ * \param[in] timeout default solver timeout
+ */
+void loadIKPluginForGroup(JointModelGroup* jmg, const std::string& base_link, const std::string& tip_link,
+                          std::string plugin = "KDL", double timeout = 0.1);
+
 /** \brief Easily build different robot models for testing.
  *  Essentially a programmer-friendly light wrapper around URDF and SRDF.
  *  Best shown by an example:
@@ -114,16 +124,17 @@ public:
    *  \param[in] origin The origin pose of this collision mesh relative to the link origin
    */
   void addCollisionMesh(const std::string& link_name, const std::string& filename, geometry_msgs::Pose origin);
+
   /** \brief Adds a collision box to a specific link.
    *  \param[in] link_name The name of the link to which the box will be added. Must already be in the builder.
-   *  \param[in] size The dimensions of the box
+   *  \param[in] dims   The dimensions of the box
    *  \param[in] origin The origin pose of this collision box relative to the link origin
    */
   void addCollisionBox(const std::string& link_name, const std::vector<double>& dims, geometry_msgs::Pose origin);
 
   /** \brief Adds a visual box to a specific link.
    *  \param[in] link_name The name of the link to which the box will be added. Must already be in the builder.
-   *  \param[in] size The dimensions of the box
+   *  \param[in] size   The dimensions of the box
    *  \param[in] origin The origin pose of this visual box relative to the link origin
    */
   void addVisualBox(const std::string& link_name, const std::vector<double>& size, geometry_msgs::Pose origin);
