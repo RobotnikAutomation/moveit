@@ -973,7 +973,7 @@ bool TimeOptimalTrajectoryGeneration::computeTimeStamps(robot_trajectory::RobotT
       }
     }
 
-    if (diverse_point)
+    /* if (diverse_point) */
       points.push_back(new_point);
   }
 
