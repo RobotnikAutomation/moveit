@@ -18,7 +18,7 @@
     version: noetic-devel
 - git:
     local-name: moveit
-    uri: https://github.com/moveit/moveit.git
+    uri: https://github.com/RobotnikAutomation/moveit.git
     version: master
 - git:
     local-name: rviz_visual_tools

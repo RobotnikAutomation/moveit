@@ -71,19 +71,27 @@ PoseTracking::PoseTracking(const ros::NodeHandle& nh,
   target_pose_sub_ =
       nh_.subscribe<geometry_msgs::PoseStamped>("target_pose", 1, &PoseTracking::targetPoseCallback, this);
 
+  // Connect to Dynamic Goal Tolerances topic
+  goal_tol_sub_ =
+      nh_.subscribe<std_msgs::Float64MultiArray>("servoing_tolerance", 1, &PoseTracking::tolerancesCallback, this);    
+
   // Publish outgoing twist commands to the Servo object
   twist_stamped_pub_ =
       nh_.advertise<geometry_msgs::TwistStamped>(servo_->getParameters().cartesian_command_in_topic, 1);
 }
 
-PoseTrackingStatusCode PoseTracking::moveToPose(const Eigen::Vector3d& positional_tolerance,
-                                                const double angular_tolerance, const double target_pose_timeout)
+PoseTrackingStatusCode PoseTracking::moveToPose(const Eigen::Vector3d& default_positional_tolerance,
+                                                const double default_angular_tolerance, const double target_pose_timeout)
 {
+  // Start with default tolerance
+  positional_tolerance_ = default_positional_tolerance;
+  angular_tolerance_ = default_angular_tolerance;
   // Reset stop requested flag before starting motions
   stop_requested_ = false;
   // Wait a bit for a target pose message to arrive.
   // The target pose may get updated by new messages as the robot moves (in a callback function).
   const ros::Time start_time = ros::Time::now();
+
   while ((!haveRecentTargetPose(target_pose_timeout) || !haveRecentEndEffectorPose(target_pose_timeout)) &&
          ((ros::Time::now() - start_time).toSec() < target_pose_timeout))
   {
@@ -96,7 +104,7 @@ PoseTrackingStatusCode PoseTracking::moveToPose(const Eigen::Vector3d& positiona
 
   if (!haveRecentTargetPose(target_pose_timeout))
   {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "The target pose was not updated recently. Aborting.");
+    ROS_ERROR_STREAM_NAMED(LOGNAME, "The targservo_serveret pose was not updated recently. Aborting.");
     return PoseTrackingStatusCode::NO_RECENT_TARGET_POSE;
   }
 
@@ -105,7 +113,7 @@ PoseTrackingStatusCode PoseTracking::moveToPose(const Eigen::Vector3d& positiona
   // - Target pose becomes outdated
   // - Command frame transform becomes outdated
   // - Another thread requested a stop
-  while (ros::ok() && !satisfiesPoseTolerance(positional_tolerance, angular_tolerance))
+  while (ros::ok() && !satisfiesPoseTolerance(positional_tolerance_, angular_tolerance_))
   {
     // Attempt to update robot pose
     if (servo_->getCommandFrameTransform(command_frame_transform_))
@@ -229,6 +237,32 @@ bool PoseTracking::satisfiesPoseTolerance(const Eigen::Vector3d& positional_tole
   return ((std::abs(x_error) < positional_tolerance(0)) && (std::abs(y_error) < positional_tolerance(1)) &&
           (std::abs(z_error) < positional_tolerance(2)) && (std::abs(*angular_error_) < angular_tolerance));
 }
+
+void PoseTracking::tolerancesCallback(const std_msgs::Float64MultiArrayConstPtr& msg)
+{
+  bool valid_goal_tolerances = true;
+
+  if(msg->data.size() != 4){
+    ROS_ERROR("Invalid goal tolerance msg. Servoing goal tolerances message should include: [x_tol, y_tol, z_tol, angular_tol].");
+  }else{
+    for(auto& tol : msg->data)
+    {
+      if(tol <= 0)
+      {
+        valid_goal_tolerances = false;
+        ROS_ERROR("Invalid goal tolerance msg. Servoing goal tolerances must be bigger than 0.");
+      }
+    }
+    if(valid_goal_tolerances)
+    {
+      ROS_INFO_STREAM("Changing servoing goal tolerances");
+      positional_tolerance_[0] = msg->data[0];
+      positional_tolerance_[1] = msg->data[1];
+      positional_tolerance_[2] = msg->data[2];
+      angular_tolerance_ = msg->data[3];
+    }
+  }
+}  
 
 void PoseTracking::targetPoseCallback(const geometry_msgs::PoseStampedConstPtr& msg)
 {

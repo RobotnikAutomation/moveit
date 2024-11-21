@@ -127,7 +127,7 @@ private:
   ros::Timer timer_;
   ros::Duration period_;
   ros::Subscriber joint_state_sub_;
-  ros::Publisher collision_velocity_scale_pub_;
+  ros::Publisher collision_velocity_scale_pub_, collision_piechart_pub_;
   ros::Subscriber worst_case_stop_time_sub_;
 };
 }  // namespace moveit_servo

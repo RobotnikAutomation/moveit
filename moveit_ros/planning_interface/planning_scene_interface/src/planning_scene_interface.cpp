@@ -127,24 +127,23 @@ public:
       bool good = true;
       for (const geometry_msgs::Pose& mesh_pose : collision_object.mesh_poses)
       {
-        tf2::doTransform(mesh_pose, pose_tf, tf);
-        if (!(pose_tf.position.x >= minx && pose_tf.position.x <= maxx && pose_tf.position.y >= miny &&
-              pose_tf.position.y <= maxy && pose_tf.position.z >= minz && pose_tf.position.z <= maxz))
+        if (!((mesh_pose.position.x + collision_object.pose.position.x)>= minx && (mesh_pose.position.x + collision_object.pose.position.x) <= maxx && (mesh_pose.position.y + collision_object.pose.position.y) >= miny &&
+              (mesh_pose.position.y + collision_object.pose.position.y)<= maxy && (mesh_pose.position.z + collision_object.pose.position.z) >= minz && (mesh_pose.position.z + collision_object.pose.position.z) <= maxz))
         {
           good = false;
           break;
         }
-      }
+      }  
       for (const geometry_msgs::Pose& primitive_pose : collision_object.primitive_poses)
       {
-        tf2::doTransform(primitive_pose, pose_tf, tf);
-        if (!(pose_tf.position.x >= minx && pose_tf.position.x <= maxx && pose_tf.position.y >= miny &&
-              pose_tf.position.y <= maxy && pose_tf.position.z >= minz && pose_tf.position.z <= maxz))
+        if (!((primitive_pose.position.x + collision_object.pose.position.x)>= minx && (primitive_pose.position.x + collision_object.pose.position.x) <= maxx &&
+              (primitive_pose.position.y + collision_object.pose.position.y)>= miny && (primitive_pose.position.y + collision_object.pose.position.y)<= maxy &&
+              (primitive_pose.position.z + collision_object.pose.position.z) >= minz && (primitive_pose.position.z + collision_object.pose.position.z)<= maxz))
         {
           good = false;
           break;
         }
-      }
+      } 
       if (good)
       {
         result.push_back(collision_object.id);
@@ -455,7 +454,7 @@ bool PlanningSceneInterface::applyCollisionObject(const moveit_msgs::CollisionOb
 
 bool PlanningSceneInterface::applyCollisionObjects(const std::vector<moveit_msgs::CollisionObject>& collision_objects,
                                                    const std::vector<moveit_msgs::ObjectColor>& object_colors)
-{
+{ 
   moveit_msgs::PlanningScene ps;
   ps.robot_state.is_diff = true;
   ps.is_diff = true;

@@ -11,6 +11,7 @@ moveit_build_options()
 
 find_package(Boost REQUIRED system filesystem date_time thread iostreams regex ${EXTRA_BOOST_COMPONENTS})
 find_package(Eigen3 REQUIRED)
+find_package(ruckig REQUIRED)
 
 # TODO: Move collision detection into separate packages
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")

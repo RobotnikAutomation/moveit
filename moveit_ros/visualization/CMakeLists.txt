@@ -4,6 +4,8 @@ project(moveit_ros_visualization)
 # definition needed for boost/math/constants/constants.hpp included by Ogre to compile
 add_definitions(-DBOOST_MATH_DISABLE_FLOAT128)
 
+set(CMAKE_CXX_STANDARD 14)
+
 find_package(Boost REQUIRED thread date_time system filesystem)
 find_package(catkin REQUIRED COMPONENTS
   class_loader

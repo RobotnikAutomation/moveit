@@ -1,4 +1,5 @@
 set(MOVEIT_LIB_NAME moveit_default_planning_request_adapter_plugins)
+set(CMAKE_CXX_STANDARD 17)
 
 set(SOURCE_FILES
   src/empty.cpp

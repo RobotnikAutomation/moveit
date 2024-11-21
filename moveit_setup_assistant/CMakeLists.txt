@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.1.3)
 project(moveit_setup_assistant)
 
+set(CMAKE_CXX_STANDARD 14)
+
 # definition needed for boost/math/constants/constants.hpp included by Ogre to compile
 add_definitions(-DBOOST_MATH_DISABLE_FLOAT128)
 

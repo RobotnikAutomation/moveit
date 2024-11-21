@@ -38,6 +38,7 @@
  */
 
 #include <std_msgs/Float64.h>
+#include <std_msgs/Float32.h>
 
 #include <moveit_servo/collision_check.h>
 #include <moveit_servo/make_shared_from_pool.h>
@@ -75,6 +76,7 @@ CollisionCheck::CollisionCheck(ros::NodeHandle& nh, const moveit_servo::ServoPar
   // Internal namespace
   ros::NodeHandle internal_nh(nh_, "internal");
   collision_velocity_scale_pub_ = internal_nh.advertise<std_msgs::Float64>("collision_velocity_scale", ROS_QUEUE_SIZE);
+  collision_piechart_pub_ = internal_nh.advertise<std_msgs::Float32>("/collision_piechart", ROS_QUEUE_SIZE);
   worst_case_stop_time_sub_ =
       internal_nh.subscribe("worst_case_stop_time", ROS_QUEUE_SIZE, &CollisionCheck::worstCaseStopTimeCB, this);
 
@@ -112,24 +114,28 @@ void CollisionCheck::run(const ros::TimerEvent& timer_event)
   current_state_->updateCollisionBodyTransforms();
   collision_detected_ = false;
 
+  // Do a timer-safe distance-based collision detection
+  collision_result_.clear();
+  getLockedPlanningSceneRO()->getCollisionEnv()->checkRobotCollision(collision_request_, collision_result_,
+                                                                     *current_state_,getLockedPlanningSceneRO()->getAllowedCollisionMatrix());
+  scene_collision_distance_ = collision_result_.distance;
+
   {
-    auto scene = getLockedPlanningSceneRO();
-    auto& acm = scene->getAllowedCollisionMatrix();
-
-    // Do a timer-safe distance-based collision detection
-    collision_result_.clear();
-    scene->getCollisionEnv()->checkRobotCollision(collision_request_, collision_result_, *current_state_, acm);
-    scene_collision_distance_ = collision_result_.distance;
-    collision_detected_ |= collision_result_.collision;
-    collision_result_.print();
-
-    // Self-collisions and scene collisions are checked separately so different thresholds can be used
-    collision_result_.clear();
-    scene->getCollisionEnvUnpadded()->checkSelfCollision(collision_request_, collision_result_, *current_state_, acm);
-    self_collision_distance_ = collision_result_.distance;
-    collision_detected_ |= collision_result_.collision;
-    collision_result_.print();
+    auto piechart_msg = moveit::util::make_shared_from_pool<std_msgs::Float32>();
+    piechart_msg->data = scene_collision_distance_;
+    collision_piechart_pub_.publish(piechart_msg);
   }
+
+  collision_detected_ |= collision_result_.collision;
+  collision_result_.print();
+
+  collision_result_.clear();
+  // Self-collisions and scene collisions are checked separately so different thresholds can be used
+  getLockedPlanningSceneRO()->getCollisionEnvUnpadded()->checkSelfCollision(collision_request_, collision_result_,
+                                                                            *current_state_, acm_);
+  self_collision_distance_ = collision_result_.distance;
+  collision_detected_ |= collision_result_.collision;
+  collision_result_.print();
 
   velocity_scale_ = 1;
   // If we're definitely in collision, stop immediately

@@ -46,6 +46,7 @@
 #include <rosparam_shortcuts/rosparam_shortcuts.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_listener.h>
+#include <std_msgs/Float64MultiArray.h>
 
 // Conventions:
 // Calculations are done in the planning_frame_ unless otherwise noted.
@@ -88,7 +89,7 @@ public:
   /** \brief Constructor. Loads ROS parameters under the given namespace. */
   PoseTracking(const ros::NodeHandle& nh, const planning_scene_monitor::PlanningSceneMonitorPtr& planning_scene_monitor);
 
-  PoseTrackingStatusCode moveToPose(const Eigen::Vector3d& positional_tolerance, const double angular_tolerance,
+  PoseTrackingStatusCode moveToPose(const Eigen::Vector3d& default_positional_tolerance, const double default_angular_tolerance,
                                     const double target_pose_timeout);
 
   /** \brief A method for a different thread to stop motion and return early from control loop */
@@ -137,6 +138,9 @@ private:
   /** \brief Subscribe to the target pose on this topic */
   void targetPoseCallback(const geometry_msgs::PoseStampedConstPtr& msg);
 
+    /** \brief Subscribe to the tolerances on this topic */
+  void tolerancesCallback(const std_msgs::Float64MultiArrayConstPtr& msg);
+
   /** \brief Update PID controller target positions & orientations */
   void updateControllerSetpoints();
 
@@ -184,6 +188,13 @@ private:
 
   // Flag that a different thread has requested a stop.
   std::atomic<bool> stop_requested_;
+
+  // Goal tolerances
+  Eigen::Vector3d positional_tolerance_;
+  double angular_tolerance_;
+
+  // Subscribe to goal tolerances update topic
+  ros::Subscriber goal_tol_sub_;
 
   boost::optional<double> angular_error_;
 };

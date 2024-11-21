@@ -43,6 +43,12 @@
 
 namespace trajectory_processing
 {
+struct JerkLimits
+{
+  bool has_jerk_limits;
+  double max_jerk;
+};
+
 class RuckigSmoothing
 {
 public:
@@ -55,6 +61,7 @@ public:
    * \return true if successful.
    */
   static bool applySmoothing(robot_trajectory::RobotTrajectory& trajectory,
+                             const std::vector<JerkLimits>& jerk_limits,
                              const double max_velocity_scaling_factor = 1.0,
                              const double max_acceleration_scaling_factor = 1.0, const bool mitigate_overshoot = false,
                              const double overshoot_threshold = 0.01);
@@ -90,6 +97,12 @@ private:
    */
   [[nodiscard]] static bool getRobotModelBounds(const double max_velocity_scaling_factor,
                                                 const double max_acceleration_scaling_factor,
+                                                moveit::core::JointModelGroup const* const group,
+                                                ruckig::InputParameter<ruckig::DynamicDOFs>& ruckig_input);
+
+  [[nodiscard]] static bool getRobotModelBounds(const double max_velocity_scaling_factor,
+                                                const double max_acceleration_scaling_factor,
+                                                const std::vector<JerkLimits>& jerk_limits,
                                                 moveit::core::JointModelGroup const* const group,
                                                 ruckig::InputParameter<ruckig::DynamicDOFs>& ruckig_input);
 

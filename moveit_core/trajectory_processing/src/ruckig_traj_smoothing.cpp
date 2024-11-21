@@ -48,16 +48,17 @@ namespace
 const std::string LOGNAME = "moveit_trajectory_processing.ruckig_traj_smoothing";
 constexpr double DEFAULT_MAX_VELOCITY = 5;       // rad/s
 constexpr double DEFAULT_MAX_ACCELERATION = 10;  // rad/s^2
-constexpr double DEFAULT_MAX_JERK = 100;         // rad/s^3
+constexpr double DEFAULT_MAX_JERK = 1000;         // rad/s^3
 constexpr double MAX_DURATION_EXTENSION_FACTOR = 50.0;
 constexpr double DURATION_EXTENSION_FRACTION = 1.1;
 constexpr double OVERSHOOT_CHECK_PERIOD = 0.01;  // sec
 }  // namespace
 
-bool RuckigSmoothing::applySmoothing(robot_trajectory::RobotTrajectory& trajectory,
-                                     const double max_velocity_scaling_factor,
-                                     const double max_acceleration_scaling_factor, const bool mitigate_overshoot,
-                                     const double overshoot_threshold)
+bool RuckigSmoothing::applySmoothing(robot_trajectory::RobotTrajectory& trajectory,                                  
+                                    const std::vector<JerkLimits>& jerk_limits,
+                                    const double max_velocity_scaling_factor,
+                                    const double max_acceleration_scaling_factor, const bool mitigate_overshoot,
+                                    const double overshoot_threshold)
 {
   if (!validateGroup(trajectory))
   {
@@ -76,7 +77,7 @@ bool RuckigSmoothing::applySmoothing(robot_trajectory::RobotTrajectory& trajecto
   moveit::core::JointModelGroup const* const group = trajectory.getGroup();
   const size_t num_dof = group->getVariableCount();
   ruckig::InputParameter<ruckig::DynamicDOFs> ruckig_input{ num_dof };
-  if (!getRobotModelBounds(max_velocity_scaling_factor, max_acceleration_scaling_factor, group, ruckig_input))
+  if (!getRobotModelBounds(max_velocity_scaling_factor, max_acceleration_scaling_factor, jerk_limits, group, ruckig_input))
   {
     ROS_ERROR_NAMED(LOGNAME, "Error while retrieving kinematic limits (vel/accel/jerk) from RobotModel.");
     return false;
@@ -214,6 +215,62 @@ bool RuckigSmoothing::validateGroup(const robot_trajectory::RobotTrajectory& tra
     ROS_ERROR_NAMED(LOGNAME, "The planner did not set the group the plan was computed for");
     return false;
   }
+  return true;
+}
+
+bool RuckigSmoothing::getRobotModelBounds(const double max_velocity_scaling_factor,
+                                          const double max_acceleration_scaling_factor,
+                                          const std::vector<JerkLimits>& jerk_limits,
+                                          moveit::core::JointModelGroup const* const group,
+                                          ruckig::InputParameter<ruckig::DynamicDOFs>& ruckig_input)
+{
+  const size_t num_dof = group->getVariableCount();
+  const std::vector<std::string>& vars = group->getVariableNames();
+  const moveit::core::RobotModel& rmodel = group->getParentModel();
+  for (size_t i = 0; i < num_dof; ++i)
+  {
+    const moveit::core::VariableBounds& bounds = rmodel.getVariableBounds(vars.at(i));
+
+    // This assumes min/max bounds are symmetric
+    if (bounds.velocity_bounded_)
+    {
+      ruckig_input.max_velocity.at(i) = max_velocity_scaling_factor * bounds.max_velocity_;
+    }
+    else
+    {
+      ROS_WARN_STREAM_ONCE_NAMED(LOGNAME,
+                                 "Joint velocity limits are not defined. Using the default "
+                                     << DEFAULT_MAX_VELOCITY
+                                     << " rad/s. You can define velocity limits in the URDF or joint_limits.yaml.");
+      ruckig_input.max_velocity.at(i) = max_velocity_scaling_factor * DEFAULT_MAX_VELOCITY;
+    }
+    if (bounds.acceleration_bounded_)
+    {
+      ruckig_input.max_acceleration.at(i) = max_acceleration_scaling_factor * bounds.max_acceleration_;
+    }
+    else
+    {
+      ROS_WARN_STREAM_ONCE_NAMED(
+          LOGNAME, "Joint acceleration limits are not defined. Using the default "
+                       << DEFAULT_MAX_ACCELERATION
+                       << " rad/s^2. You can define acceleration limits in the URDF or joint_limits.yaml.");
+      ruckig_input.max_acceleration.at(i) = max_acceleration_scaling_factor * DEFAULT_MAX_ACCELERATION;
+    }
+    
+    // If has_jerk_limits is true, then save the value of the max_jerk
+    if(jerk_limits[i].has_jerk_limits){
+      // ROS_INFO_STREAM("The jerk_limits.max_jerk is: " << jerk_limits[i].max_jerk);
+      ruckig_input.max_jerk.at(i) = jerk_limits[i].max_jerk;
+    }
+    else{
+      ROS_WARN_STREAM_ONCE_NAMED("trajectory_processing.iterative_spline_parameterization",
+                                 "Joint jerk limits are not defined. Using the default "
+                                          << DEFAULT_MAX_JERK
+                                          << " rad/s^3. You can define jerk limits in joint_limits.yaml.");
+      ruckig_input.max_jerk.at(i) = DEFAULT_MAX_JERK;
+    }
+  }
+
   return true;
 }
 
