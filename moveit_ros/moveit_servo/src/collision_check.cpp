@@ -80,8 +80,8 @@ CollisionCheck::CollisionCheck(ros::NodeHandle& nh, const moveit_servo::ServoPar
   worst_case_stop_time_sub_ =
       internal_nh.subscribe("worst_case_stop_time", ROS_QUEUE_SIZE, &CollisionCheck::worstCaseStopTimeCB, this);
 
+  // initialize current state buffer
   current_state_ = planning_scene_monitor_->getStateMonitor()->getCurrentState();
-  acm_ = getLockedPlanningSceneRO()->getAllowedCollisionMatrix();
 }
 
 planning_scene_monitor::LockedPlanningSceneRO CollisionCheck::getLockedPlanningSceneRO() const
@@ -109,8 +109,8 @@ void CollisionCheck::run(const ros::TimerEvent& timer_event)
     return;
   }
 
-  // Update to the latest current state
-  current_state_ = planning_scene_monitor_->getStateMonitor()->getCurrentState();
+  // Get the latest current state (bypassing scene update throttling)
+  planning_scene_monitor_->getStateMonitor()->setToCurrentState(*current_state_);
   current_state_->updateCollisionBodyTransforms();
   collision_detected_ = false;
 
@@ -130,7 +130,6 @@ void CollisionCheck::run(const ros::TimerEvent& timer_event)
   collision_result_.print();
 
   collision_result_.clear();
-  /* acm_.print(std::cout); */
   // Self-collisions and scene collisions are checked separately so different thresholds can be used
   getLockedPlanningSceneRO()->getCollisionEnvUnpadded()->checkSelfCollision(collision_request_, collision_result_,
                                                                             *current_state_, acm_);
@@ -138,23 +137,6 @@ void CollisionCheck::run(const ros::TimerEvent& timer_event)
   collision_detected_ |= collision_result_.collision;
   collision_result_.print();
 
- /*  std::cout << "collision distance " << self_collision_distance_ << std::endl; */
-
-/*   std::map<std::pair<std::string, std::string>, std::vector<collision_detection::Contact> > contacts;
-  contacts = collision_result_.contacts;
-  if (!contacts.empty())
-  {
-    ROS_INFO_STREAM("Objects in collision (printing 1st of "
-                                       << contacts.size() << " pairs): " << contacts.begin()->first.first << ", "
-                                       << contacts.begin()->first.second);
-
-    // Log all collisions at the debug level
-    ROS_INFO_STREAM("Objects in collision:");
-    for (const auto& contact : contacts)
-    {
-      ROS_INFO_STREAM("\t" << contact.first.first << ", " << contact.first.second);
-    }
-  } */
   velocity_scale_ = 1;
   // If we're definitely in collision, stop immediately
   if (collision_detected_)

@@ -2,6 +2,30 @@
 Changelog for package moveit_planners_ompl
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.16 (2024-10-07)
+-------------------
+
+1.1.15 (2024-09-09)
+-------------------
+* Fix constrained-based planning / PoseModelStateSpace (`#3615 <https://github.com/ros-planning/moveit/issues/3615>`_)
+* Contributors: Robert Haschke
+
+1.1.14 (2024-05-27)
+-------------------
+* Support ompl::ompl cmake target (`#3549 <https://github.com/ros-planning/moveit/issues/3549>`_)
+* Install generate_state_database.launch (`#3510 <https://github.com/ros-planning/moveit/issues/3510>`_)
+* Contributors: Michael Görner
+
+1.1.13 (2023-07-28)
+-------------------
+
+1.1.12 (2023-05-13)
+-------------------
+* Add AITstar, BITstar and ABITstar planners from OMPL >= 1.5 (`#3347 <https://github.com/ros-planning/moveit/issues/3347>`_)
+* Differential drive for planar Joints (`#3359 <https://github.com/ros-planning/moveit/issues/3359>`_)
+* Fix (some) doxygen warnings (`#3315 <https://github.com/ros-planning/moveit/issues/3315>`_)
+* Contributors: Robert Haschke, Scott Chow, alaflaquiere
+
 1.1.11 (2022-12-21)
 -------------------
 * Improve processing of multiple planning attempts: skip remaining planning attempts if solution was found (`#3261 <https://github.com/ros-planning/moveit/issues/3261>`_)

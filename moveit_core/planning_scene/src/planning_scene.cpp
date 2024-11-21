@@ -682,7 +682,12 @@ void PlanningScene::getPlanningSceneDiffMsg(moveit_msgs::PlanningScene& scene_ms
     for (const std::pair<const std::string, collision_detection::World::Action>& it : *world_diff_)
     {
       if (it.first == OCTOMAP_NS)
-        do_omap = true;
+      {
+        if (it.second == collision_detection::World::DESTROY)
+          scene_msg.world.octomap.octomap.id = "cleared";  // indicate cleared octomap
+        else
+          do_omap = true;
+      }
       else if (it.second == collision_detection::World::DESTROY)
       {
         // if object became attached, it should not be recorded as removed here
@@ -1305,7 +1310,7 @@ bool PlanningScene::setPlanningSceneDiffMsg(const moveit_msgs::PlanningScene& sc
     result &= processCollisionObjectMsg(collision_object);
 
   // if an octomap was specified, replace the one we have with that one
-  if (!scene_msg.world.octomap.octomap.data.empty())
+  if (!scene_msg.world.octomap.octomap.id.empty())
     processOctomapMsg(scene_msg.world.octomap);
 
   return result;
@@ -1313,6 +1318,7 @@ bool PlanningScene::setPlanningSceneDiffMsg(const moveit_msgs::PlanningScene& sc
 
 bool PlanningScene::setPlanningSceneMsg(const moveit_msgs::PlanningScene& scene_msg)
 {
+  assert(scene_msg.is_diff == false);
   ROS_DEBUG_NAMED(LOGNAME, "Setting new planning scene: '%s'", scene_msg.name.c_str());
   name_ = scene_msg.name;
 
@@ -1750,15 +1756,15 @@ bool PlanningScene::shapesAndPosesFromCollisionObjectMessage(const moveit_msgs::
   shapes.reserve(num_shapes);
   shape_poses.reserve(num_shapes);
 
-  PlanningScene::poseMsgToEigen(object.pose, object_pose);
-
   bool switch_object_pose_and_shape_pose = false;
-  if (num_shapes == 1)
-    if (moveit::core::isEmpty(object.pose))
-    {
-      switch_object_pose_and_shape_pose = true;  // If the object pose is not set but the shape pose is,
-                                                 // use the shape's pose as the object pose.
-    }
+  if (num_shapes == 1 && moveit::core::isEmpty(object.pose))
+  {
+    // If the object pose is not set but the shape pose is, use the shape's pose as the object pose.
+    switch_object_pose_and_shape_pose = true;
+    object_pose.setIdentity();
+  }
+  else
+    PlanningScene::poseMsgToEigen(object.pose, object_pose);
 
   auto append = [&object_pose, &shapes, &shape_poses,
                  &switch_object_pose_and_shape_pose](shapes::Shape* s, const geometry_msgs::Pose& pose_msg) {
@@ -1877,6 +1883,7 @@ bool PlanningScene::processCollisionObjectMove(const moveit_msgs::CollisionObjec
 {
   if (world_->hasObject(object.id))
   {
+    // update object pose
     if (!object.primitives.empty() || !object.meshes.empty() || !object.planes.empty())
       ROS_WARN_NAMED(LOGNAME, "Move operation for object '%s' ignores the geometry specified in the message.",
                      object.id.c_str());
@@ -1888,6 +1895,45 @@ bool PlanningScene::processCollisionObjectMove(const moveit_msgs::CollisionObjec
 
     const Eigen::Isometry3d object_frame_transform = world_to_object_header_transform * header_to_pose_transform;
     world_->setObjectPose(object.id, object_frame_transform);
+
+    // update shape poses
+    if (!object.primitive_poses.empty() || !object.mesh_poses.empty() || !object.plane_poses.empty())
+    {
+      auto world_object = world_->getObject(object.id);  // object exists, checked earlier
+
+      std::size_t shape_size = object.primitive_poses.size() + object.mesh_poses.size() + object.plane_poses.size();
+      if (shape_size != world_object->shape_poses_.size())
+      {
+        ROS_ERROR_NAMED(LOGNAME, "Move operation for object '%s' must have same number of geometry poses. Cannot move.",
+                        object.id.c_str());
+        return false;
+      }
+
+      // order matters -> primitive, mesh and plane
+      EigenSTL::vector_Isometry3d shape_poses;
+      for (const auto& shape_pose : object.primitive_poses)
+      {
+        shape_poses.emplace_back();
+        PlanningScene::poseMsgToEigen(shape_pose, shape_poses.back());
+      }
+      for (const auto& shape_pose : object.mesh_poses)
+      {
+        shape_poses.emplace_back();
+        PlanningScene::poseMsgToEigen(shape_pose, shape_poses.back());
+      }
+      for (const auto& shape_pose : object.plane_poses)
+      {
+        shape_poses.emplace_back();
+        PlanningScene::poseMsgToEigen(shape_pose, shape_poses.back());
+      }
+
+      if (!world_->moveShapesInObject(object.id, shape_poses))
+      {
+        ROS_ERROR_NAMED(LOGNAME, "Move operation for object '%s' internal world error. Cannot move.", object.id.c_str());
+        return false;
+      }
+    }
+
     return true;
   }
 

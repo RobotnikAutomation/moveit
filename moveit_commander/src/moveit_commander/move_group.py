@@ -648,23 +648,26 @@ class MoveGroupCommander(object):
         self,
         waypoints,
         eef_step,
-        jump_threshold,
         avoid_collisions=True,
         path_constraints=None,
     ):
-        """Compute a sequence of waypoints that make the end-effector move in straight line segments that follow the poses specified as waypoints. Configurations are computed for every eef_step meters; The jump_threshold specifies the maximum distance in configuration space between consecutive points in the resultingpath; Kinematic constraints for the path given by path_constraints will be met for every point along the trajectory, if they are not met, a partial solution will be returned. The return value is a tuple: a fraction of how much of the path was followed, the actual RobotTrajectory."""
+        """Compute a sequence of waypoints that make the end-effector move in straight line segments that follow the poses specified as waypoints.
+        Configurations are computed for every eef_step meters.
+        Kinematic constraints for the path given by path_constraints will be met for every point along the trajectory.
+        If the Kinematic constraints are not met, a partial solution will be returned.
+        The return value is a tuple: the actual RobotTrajectory and the fraction of how much of the path was followed.
+        """
         if path_constraints:
             if type(path_constraints) is Constraints:
                 constraints_str = conversions.msg_to_string(path_constraints)
             else:
                 raise MoveItCommanderException(
                     "Unable to set path constraints, unknown constraint type "
-                    + type(path_constraints)
+                    + str(type(path_constraints))
                 )
             (ser_path, fraction) = self._g.compute_cartesian_path(
                 [conversions.pose_to_list(p) for p in waypoints],
                 eef_step,
-                jump_threshold,
                 avoid_collisions,
                 constraints_str,
             )
@@ -672,7 +675,6 @@ class MoveGroupCommander(object):
             (ser_path, fraction) = self._g.compute_cartesian_path(
                 [conversions.pose_to_list(p) for p in waypoints],
                 eef_step,
-                jump_threshold,
                 avoid_collisions,
             )
 
@@ -680,12 +682,15 @@ class MoveGroupCommander(object):
         path.deserialize(ser_path)
         return (path, fraction)
 
-    def execute(self, plan_msg, wait=True):
+    def execute(self, trajectory, wait=True):
         """Execute a previously planned path"""
+        if not hasattr(trajectory, "joint_trajectory"):
+            trajectory = RobotTrajectory(joint_trajectory=trajectory)
+
         if wait:
-            return self._g.execute(conversions.msg_to_string(plan_msg))
+            return self._g.execute(conversions.msg_to_string(trajectory))
         else:
-            return self._g.async_execute(conversions.msg_to_string(plan_msg))
+            return self._g.async_execute(conversions.msg_to_string(trajectory))
 
     def attach_object(self, object_name, link_name="", touch_links=[]):
         """Given the name of an object existing in the planning scene, attach it to a link. The link used is specified by the second argument. If left unspecified, the end-effector link is used, if one is known. If there is no end-effector link, the first link in the group is used. If no link is identified, failure is reported. True is returned if an attach request was succesfully sent to the move_group node. This does not verify that the attach request also was successfuly applied by move_group."""
