@@ -104,7 +104,7 @@ PoseTrackingStatusCode PoseTracking::moveToPose(const Eigen::Vector3d& default_p
 
   if (!haveRecentTargetPose(target_pose_timeout))
   {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "The targservo_serveret pose was not updated recently. Aborting.");
+    ROS_ERROR_STREAM_NAMED(LOGNAME, "The target pose was not updated recently. Aborting.");
     return PoseTrackingStatusCode::NO_RECENT_TARGET_POSE;
   }
 
